@@ -49,30 +49,30 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.977 0.002 100);
+  --foreground: oklch(0.21 0.012 255);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.21 0.012 255);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --popover-foreground: oklch(0.21 0.012 255);
+  --primary: oklch(0.47 0.105 168);
+  --primary-foreground: oklch(0.985 0.005 168);
+  --secondary: oklch(0.955 0.004 100);
+  --secondary-foreground: oklch(0.3 0.012 255);
+  --muted: oklch(0.955 0.004 100);
+  --muted-foreground: oklch(0.5 0.012 255);
+  --accent: oklch(0.94 0.025 168);
+  --accent-foreground: oklch(0.34 0.09 168);
+  --destructive: oklch(0.55 0.21 27);
+  --border: oklch(0.915 0.005 100);
+  --input: oklch(0.915 0.005 100);
+  --ring: oklch(0.47 0.105 168);
+  --chart-1: oklch(0.47 0.105 168);
+  --chart-2: oklch(0.66 0.09 168);
+  --chart-3: oklch(0.55 0.21 27);
+  --chart-4: oklch(0.72 0.13 60);
+  --chart-5: oklch(0.5 0.012 255);
+  --radius: 0.5rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -127,4 +127,41 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Subtle highlight when a monetary/volume figure updates */
+@keyframes value-flash {
+  0% {
+    background-color: oklch(0.94 0.025 168);
+    color: oklch(0.34 0.09 168);
+  }
+  100% {
+    background-color: transparent;
+    color: inherit;
+  }
+}
+
+.value-flash {
+  animation: value-flash 1.2s ease-out;
+  border-radius: 0.25rem;
+}
+
+/* Subtle entrance for new ledger feed rows */
+@keyframes feed-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.feed-in {
+  animation: feed-in 0.35s ease-out;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
 }
