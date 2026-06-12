@@ -4,9 +4,16 @@ import {
   DynamoDBDocumentClient,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb"
+import { awsCredentialsProvider } from "@vercel/functions/oidc"
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME
-const client = new DynamoDBClient({ region: process.env.AWS_REGION })
+const client = new DynamoDBClient({
+  region: process.env.AWS_REGION,
+  credentials: awsCredentialsProvider({
+    roleArn: process.env.AWS_ROLE_ARN,
+    clientConfig: { region: process.env.AWS_REGION },
+  }),
+})
 const doc = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
 })
