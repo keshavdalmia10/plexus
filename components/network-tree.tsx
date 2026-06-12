@@ -4,8 +4,9 @@ import useSWR from "swr"
 import { useMemo, useState } from "react"
 import { ChevronRight, Loader2, Users } from "lucide-react"
 import { fetcher, useActingAs } from "@/components/acting-as"
+import { Paywall, PaywallSkeletonRows } from "@/components/paywall"
 import { formatVolume } from "@/lib/format"
-import type { Distributor, Rank } from "@/lib/types"
+import { FREE_NETWORK_DEPTH, type Distributor, type LockedLevels, type Rank } from "@/lib/types"
 
 interface SubtreeMember extends Distributor {
   pv: number
@@ -15,6 +16,7 @@ interface SubtreeMember extends Distributor {
 interface SubtreeResponse {
   root: Distributor
   period: string
+  locked: LockedLevels | null
   members: SubtreeMember[]
 }
 
@@ -180,19 +182,35 @@ export function NetworkTree() {
     )
   }
 
+  const locked = data?.locked
+  const lockedLevelLabel = locked
+    ? locked.levels.length === 1
+      ? `level ${locked.levels[0]}`
+      : `levels ${locked.levels[0]}\u2013${locked.levels[locked.levels.length - 1]}`
+    : ""
+
   return (
-    <section aria-label="Network genealogy tree" className="flex flex-col gap-4">
+    <section aria-label="Your network genealogy tree" className="flex flex-col gap-4">
       <header>
-        <h1 className="text-xl font-semibold tracking-tight">Network</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Your network</h1>
         <p className="text-sm text-muted-foreground text-pretty">
-          Genealogy under {data?.root.name ?? `#${actingAs}`}. PV is personal
-          volume for the current period; GV includes the entire downline.
-          Branches are sorted by group volume.
+          Everyone you&apos;ve brought in, and their teams. PV is each
+          person&apos;s own sales volume this month; GV includes everyone
+          underneath them. Branches are sorted by group volume.
         </p>
       </header>
       <ul className="flex flex-col gap-2">
         <TreeNode node={tree} depth={0} isLast />
       </ul>
+
+      {locked && (
+        <Paywall
+          title="Upgrade to Pro to see your full network"
+          description={`${locked.memberCount} more ${locked.memberCount === 1 ? "member" : "members"} in ${lockedLevelLabel} of your network. Free shows levels 1\u2013${FREE_NETWORK_DEPTH}.`}
+        >
+          <PaywallSkeletonRows rows={Math.min(locked.memberCount, 5)} />
+        </Paywall>
+      )}
     </section>
   )
 }

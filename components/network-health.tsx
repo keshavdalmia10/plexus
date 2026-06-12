@@ -3,8 +3,13 @@
 import useSWR from "swr"
 import { AlertTriangle, Loader2, ShieldCheck } from "lucide-react"
 import { fetcher, useActingAs } from "@/components/acting-as"
+import { Paywall } from "@/components/paywall"
 import { formatVolume } from "@/lib/format"
-import type { HealthNode, NetworkHealth } from "@/lib/types"
+import type {
+  HealthNode,
+  NetworkHealth,
+  NetworkHealthTeaser,
+} from "@/lib/types"
 
 function scoreTone(score: number): { label: string; className: string } {
   if (score >= 70)
@@ -104,9 +109,46 @@ function FlaggedRow({ node }: { node: HealthNode }) {
   )
 }
 
+function GatedHealth({ teaser }: { teaser: NetworkHealthTeaser }) {
+  return (
+    <section aria-label="Your network health" className="flex flex-col gap-4">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight">
+          Your network health
+        </h1>
+        <p className="text-sm text-muted-foreground text-pretty">
+          See how much of your network&apos;s volume comes from genuine retail
+          sales versus starter packs.
+        </p>
+      </header>
+      <Paywall
+        title="Network Health is a Pro feature"
+        description={`Get a health score for all ${teaser.memberCount} members of your network, with flagged branches where starter packs dominate.`}
+      >
+        {/* Decorative placeholder rendered behind the blur — no real data */}
+        <div className="grid gap-3 p-4 lg:grid-cols-3">
+          <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border p-6">
+            <ScoreRing score={72} />
+            <span className="h-3 w-40 rounded bg-muted" />
+          </div>
+          <div className="flex flex-col justify-center gap-4 rounded-lg border border-border p-6 lg:col-span-2">
+            <span className="h-3 w-48 rounded bg-muted" />
+            <span className="h-3 w-36 rounded bg-muted" />
+            <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+              <div className="w-3/4 bg-primary" />
+              <div className="w-1/4 bg-destructive/70" />
+            </div>
+            <span className="h-3 w-56 rounded bg-muted" />
+          </div>
+        </div>
+      </Paywall>
+    </section>
+  )
+}
+
 export function NetworkHealthView() {
   const { actingAs } = useActingAs()
-  const { data, isLoading, error } = useSWR<NetworkHealth>(
+  const { data, isLoading, error } = useSWR<NetworkHealth | NetworkHealthTeaser>(
     `/api/distributors/${actingAs}/health`,
     fetcher,
     { refreshInterval: 5000 },
@@ -129,16 +171,22 @@ export function NetworkHealthView() {
     )
   }
 
+  if ("gated" in data) {
+    return <GatedHealth teaser={data} />
+  }
+
   const total = data.totalRetail + data.totalStarter
   const retailPct = total > 0 ? Math.round((data.totalRetail / total) * 100) : 100
 
   return (
-    <section aria-label="Network health" className="flex flex-col gap-4">
+    <section aria-label="Your network health" className="flex flex-col gap-4">
       <header>
-        <h1 className="text-xl font-semibold tracking-tight">Network Health</h1>
+        <h1 className="text-xl font-semibold tracking-tight">
+          Your network health
+        </h1>
         <p className="text-sm text-muted-foreground text-pretty">
-          Measures how much of your network&apos;s volume comes from genuine
-          retail sales versus starter packs for period {data.period}.
+          How much of your network&apos;s volume comes from genuine retail
+          sales versus starter packs for period {data.period}.
         </p>
       </header>
 

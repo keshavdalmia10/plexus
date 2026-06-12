@@ -42,18 +42,16 @@ export function Dashboard() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Your dashboard
+          </p>
           <h1 className="text-lg font-semibold tracking-tight">
             {d ? d.name : "Loading…"}
-            {d && (
-              <span className="ml-2 font-mono text-sm font-normal text-muted-foreground">
-                #{d.id}
-              </span>
-            )}
           </h1>
           <p className="text-xs text-muted-foreground">
             {d
-              ? `Level ${d.depth} · ${d.status === "active" ? "Active" : "Inactive"} · this month, updating live`
-              : "Fetching distributor"}
+              ? `${d.rank} · this month, updating live`
+              : "Fetching your account"}
           </p>
         </div>
         <RecordSale distributorId={actingAs} />
@@ -61,25 +59,25 @@ export function Dashboard() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard
-          label="Personal volume"
+          label="Your sales volume"
           value={v ? formatVolume(v.pv) : "—"}
           raw={v?.pv}
           sublabel={pv ? `${formatVolume(pv.pv)} last month` : undefined}
         />
         <StatCard
-          label="Group volume"
+          label="Your network volume"
           value={v ? formatVolume(v.gv) : "—"}
           raw={v?.gv}
           sublabel={pv ? `${formatVolume(pv.gv)} last month` : undefined}
         />
         <StatCard
-          label="Rank"
+          label="Your rank"
           value={d?.rank ?? "—"}
           mono={false}
           sublabel={d ? `Since joining` : undefined}
         />
         <StatCard
-          label="Earnings (this month)"
+          label="Your earnings"
           value={v ? formatMoney(v.commissionEarned) : "—"}
           raw={v?.commissionEarned}
           sublabel={
@@ -90,7 +88,7 @@ export function Dashboard() {
 
       <section className="rounded-lg border border-border bg-card shadow-sm">
         <header className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold">Commission feed</h2>
+          <h2 className="text-sm font-semibold">Your commission feed</h2>
           <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-60" />

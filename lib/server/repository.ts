@@ -173,6 +173,39 @@ export async function putDistributor(d: Distributor): Promise<void> {
   )
 }
 
+/**
+ * Update a seller's plan. The distributor is materialized as three items
+ * (meta, tree index, parent edge), so all copies are updated together.
+ */
+export async function setPlan(
+  id: string,
+  plan: Distributor["plan"],
+): Promise<Distributor | null> {
+  const d = await getDistributor(id)
+  if (!d) return null
+  const targets: { PK: string; SK: string }[] = [
+    { PK: keys.dist(d.id), SK: keys.meta() },
+    { PK: keys.treePK(), SK: d.path },
+  ]
+  if (d.parentId) {
+    targets.push({ PK: keys.parentPK(d.parentId), SK: d.id })
+  }
+  await Promise.all(
+    targets.map((Key) =>
+      docClient.send(
+        new UpdateCommand({
+          TableName: TABLE_NAME,
+          Key,
+          UpdateExpression: "SET #plan = :plan",
+          ExpressionAttributeNames: { "#plan": "plan" },
+          ExpressionAttributeValues: { ":plan": plan },
+        }),
+      ),
+    ),
+  )
+  return { ...d, plan }
+}
+
 export interface RecordSaleInput {
   distributorId: string
   productId: string
@@ -316,6 +349,7 @@ function toDistributor(item: Record<string, unknown>): Distributor {
     depth: Number(item.depth),
     rank: item.rank as Distributor["rank"],
     status: item.status as Distributor["status"],
+    plan: item.plan === "pro" ? "pro" : "free",
   }
 }
 

@@ -28,6 +28,10 @@ interface ActingAsContextValue {
   setActingAs: (id: string) => void
   distributors: Distributor[]
   isLoading: boolean
+  /** The seller currently being viewed (you). */
+  current: Distributor | null
+  /** Re-fetch the seller list, e.g. after a plan change. */
+  refresh: () => Promise<unknown>
 }
 
 const ActingAsContext = createContext<ActingAsContextValue | null>(null)
@@ -46,19 +50,23 @@ export function ActingAsProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, id)
   }, [])
 
-  const { data, isLoading } = useSWR<{ distributors: Distributor[] }>(
+  const { data, isLoading, mutate } = useSWR<{ distributors: Distributor[] }>(
     "/api/distributors",
     fetcher,
     { revalidateOnFocus: false },
   )
+
+  const distributors = data?.distributors ?? []
 
   return (
     <ActingAsContext.Provider
       value={{
         actingAs,
         setActingAs,
-        distributors: data?.distributors ?? [],
+        distributors,
         isLoading,
+        current: distributors.find((d) => d.id === actingAs) ?? null,
+        refresh: mutate,
       }}
     >
       {children}

@@ -77,6 +77,9 @@ const STARTER_HEAVY_ROOTS = ["014", "027"]
 
 const INACTIVE = new Set(["012", "020", "034", "038"])
 
+// Sellers already on the Pro plan in fresh seeds (existing rows default to free).
+const PRO_SELLERS = new Set(["002", "009"])
+
 const PRODUCTS = {
   retail: [
     { id: "PLX-VITA", amount: 64, volume: 50 },
@@ -159,6 +162,7 @@ function buildDistributors(): Distributor[] {
       depth,
       rank: rankFor(id, depth),
       status: INACTIVE.has(id) ? "inactive" : "active",
+      plan: PRO_SELLERS.has(id) ? "pro" : "free",
     })
     for (const child of TREE[id] ?? []) walk(child, id, path)
   }

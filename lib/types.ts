@@ -9,6 +9,11 @@ export type DistributorStatus = "active" | "inactive"
 
 export type SaleType = "retail" | "starter"
 
+export type Plan = "free" | "pro"
+
+/** Highest relative network level visible on the Free plan (1 = direct children). */
+export const FREE_NETWORK_DEPTH = 3
+
 export interface Distributor {
   id: string
   name: string
@@ -18,6 +23,7 @@ export interface Distributor {
   depth: number
   rank: Rank
   status: DistributorStatus
+  plan: Plan
 }
 
 export interface Sale {
@@ -82,6 +88,22 @@ export interface NetworkHealth {
   totalStarter: number
   nodes: HealthNode[]
   flagged: HealthNode[]
+}
+
+/** Teaser returned by /health when the seller is on the Free plan. */
+export interface NetworkHealthTeaser {
+  gated: true
+  rootId: string
+  period: string
+  memberCount: number
+}
+
+/** Summary of network levels hidden from a Free-plan seller. */
+export interface LockedLevels {
+  /** Total members beyond the free depth limit */
+  memberCount: number
+  /** Relative levels hidden, e.g. [4, 5] */
+  levels: number[]
 }
 
 export const COMMISSION_RATES = [0.1, 0.05, 0.03, 0.02, 0.01] as const

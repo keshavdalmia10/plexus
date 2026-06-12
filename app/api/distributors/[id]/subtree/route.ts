@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { getDistributor, getSubtree, getVolumes } from "@/lib/server/repository"
 import { badRequest, isValidDistId, notFound, serverError } from "@/lib/server/validate"
-import { currentPeriod } from "@/lib/types"
+import { currentPeriod, FREE_NETWORK_DEPTH, type LockedLevels } from "@/lib/types"
 
 export async function GET(
   _req: Request,
@@ -12,8 +12,29 @@ export async function GET(
   try {
     const root = await getDistributor(id)
     if (!root) return notFound("Distributor not found")
-    const members = await getSubtree(root.path)
-    members.sort((a, b) => a.path.localeCompare(b.path))
+    const all = await getSubtree(root.path)
+    all.sort((a, b) => a.path.localeCompare(b.path))
+
+    // Plan gating, enforced server-side: Free sellers only receive members
+    // within FREE_NETWORK_DEPTH relative levels. Deeper rows never leave
+    // the API — only an anonymous count of what is hidden.
+    let members = all
+    let locked: LockedLevels | null = null
+    if (root.plan === "free") {
+      members = all.filter((m) => m.depth - root.depth <= FREE_NETWORK_DEPTH)
+      const hidden = all.filter(
+        (m) => m.depth - root.depth > FREE_NETWORK_DEPTH,
+      )
+      if (hidden.length > 0) {
+        locked = {
+          memberCount: hidden.length,
+          levels: [...new Set(hidden.map((m) => m.depth - root.depth))].sort(
+            (a, b) => a - b,
+          ),
+        }
+      }
+    }
+
     const period = currentPeriod()
     const volumes = await getVolumes(
       members.map((m) => m.id),
@@ -22,6 +43,7 @@ export async function GET(
     return NextResponse.json({
       root,
       period,
+      locked,
       members: members.map((m) => {
         const v = volumes.get(m.id)
         return { ...m, pv: v?.pv ?? 0, gv: v?.gv ?? 0 }
