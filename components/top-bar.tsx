@@ -57,7 +57,11 @@ export function TopBar() {
               disabled={isLoading}
               className="h-8 appearance-none rounded-md border border-border bg-card py-0 pl-2.5 pr-8 text-[13px] font-medium text-foreground shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:opacity-60"
             >
-              {isLoading && <option>Loading…</option>}
+              {isLoading && (
+                <option value={actingAs} disabled>
+                  Loading…
+                </option>
+              )}
               {distributors.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.id} · {d.name}

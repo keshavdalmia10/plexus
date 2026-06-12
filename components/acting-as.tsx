@@ -41,6 +41,7 @@ export function ActingAsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const setActingAs = useCallback((id: string) => {
+    if (!/^\d{3}$/.test(id)) return
     setActingAsState(id)
     window.localStorage.setItem(STORAGE_KEY, id)
   }, [])

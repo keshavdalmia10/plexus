@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
-import { getDistributor, getSubtree } from "@/lib/server/repository"
+import { getDistributor, getSubtree, getVolumes } from "@/lib/server/repository"
 import { badRequest, isValidDistId, notFound, serverError } from "@/lib/server/validate"
+import { currentPeriod } from "@/lib/types"
 
 export async function GET(
   _req: Request,
@@ -13,7 +14,19 @@ export async function GET(
     if (!root) return notFound("Distributor not found")
     const members = await getSubtree(root.path)
     members.sort((a, b) => a.path.localeCompare(b.path))
-    return NextResponse.json({ root, members })
+    const period = currentPeriod()
+    const volumes = await getVolumes(
+      members.map((m) => m.id),
+      period,
+    )
+    return NextResponse.json({
+      root,
+      period,
+      members: members.map((m) => {
+        const v = volumes.get(m.id)
+        return { ...m, pv: v?.pv ?? 0, gv: v?.gv ?? 0 }
+      }),
+    })
   } catch (error) {
     return serverError(error)
   }

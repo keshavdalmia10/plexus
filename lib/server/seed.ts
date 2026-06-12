@@ -199,9 +199,9 @@ async function seedSales(): Promise<void> {
   const now = new Date()
   const sales: { distributorId: string; type: SaleType; at: Date }[] = []
 
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 150; i++) {
     const seller = active[Math.floor(rand() * active.length)]
-    const starterBias = starterHeavyIds.has(seller.id) ? 0.85 : 0.2
+    const starterBias = starterHeavyIds.has(seller.id) ? 0.8 : 0.04
     const type: SaleType = rand() < starterBias ? "starter" : "retail"
     // ~55% current month, ~45% previous month
     const monthOffset = rand() < 0.55 ? 0 : -1
