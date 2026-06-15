@@ -38,5 +38,5 @@ export function deterministicTxnId(saleId: string, beneficiaryId: string): strin
 }
 
 export function round2(n: number): number {
-  return Math.round(n * 100) / 100
+  return Number(`${Math.round(Number(`${n}e2`))}e-2`)
 }

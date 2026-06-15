@@ -42,4 +42,7 @@ describe("deterministicTxnId", () => {
   it("differs across beneficiaries", () => {
     expect(deterministicTxnId("s1", "b1")).not.toBe(deterministicTxnId("s1", "b2"))
   })
+  it("matches the known hash for a fixed input (idempotency regression guard)", () => {
+    expect(deterministicTxnId("s1", "b1")).toBe("a4daeab030988e56677213dcebff7778")
+  })
 })
