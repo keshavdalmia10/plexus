@@ -325,18 +325,17 @@ export async function wipeAll(): Promise<void> {
     if (d.parentId) {
       deleteKeys.push({ PK: keys.parentPK(d.parentId), SK: d.id })
     }
-    // VOLUME# aggregate items
-    const volRes = await docClient.send(
+    // All items under this distributor's partition (META, VOLUME#, HEALTH#, etc.)
+    const distRes = await docClient.send(
       new QueryCommand({
         TableName: TABLE_NAME,
-        KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+        KeyConditionExpression: "PK = :pk",
         ExpressionAttributeValues: {
           ":pk": keys.dist(d.id),
-          ":sk": "VOLUME#",
         },
       }),
     )
-    for (const item of volRes.Items ?? []) {
+    for (const item of distRes.Items ?? []) {
       deleteKeys.push({ PK: String(item.PK), SK: String(item.SK) })
     }
   }
@@ -356,9 +355,18 @@ export async function wipeAll(): Promise<void> {
   // SEED marker
   deleteKeys.push({ PK: keys.systemPK(), SK: "SEED" })
 
+  // Deduplicate keys before batching (query may overlap with explicit pushes above)
+  const seen = new Set<string>()
+  const uniqueKeys = deleteKeys.filter((k) => {
+    const composite = `${k.PK}||${k.SK}`
+    if (seen.has(composite)) return false
+    seen.add(composite)
+    return true
+  })
+
   // Batch-delete in chunks of 25, draining UnprocessedItems on each chunk
-  for (let i = 0; i < deleteKeys.length; i += 25) {
-    const chunk = deleteKeys.slice(i, i + 25)
+  for (let i = 0; i < uniqueKeys.length; i += 25) {
+    const chunk = uniqueKeys.slice(i, i + 25)
     let request: Record<string, { DeleteRequest: { Key: { PK: string; SK: string } } }[]> = {
       [TABLE_NAME]: chunk.map((Key) => ({ DeleteRequest: { Key } })),
     }

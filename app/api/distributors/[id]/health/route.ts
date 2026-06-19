@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getNetworkHealth } from "@/lib/server/health"
-import { getDistributor, getSubtree } from "@/lib/server/repository"
+import { getDistributor, getHealthRollup, getSubtree } from "@/lib/server/repository"
 import { badRequest, isValidDistId, notFound, serverError } from "@/lib/server/validate"
 import { currentPeriod, type NetworkHealthTeaser } from "@/lib/types"
 
@@ -27,8 +27,11 @@ export async function GET(
       return NextResponse.json(teaser)
     }
 
-    const health = await getNetworkHealth(id)
-    return NextResponse.json(health)
+    const period = currentPeriod()
+    let health = await getHealthRollup(id, period)
+    let source = "rollup"
+    if (!health) { health = await getNetworkHealth(id); source = "live" }
+    return NextResponse.json({ ...health, source })
   } catch (error) {
     if (error instanceof Error && error.message.startsWith("Unknown distributor")) {
       return badRequest(error.message)

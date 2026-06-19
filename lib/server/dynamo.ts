@@ -33,6 +33,7 @@ export const keys = {
   dist: (id: string) => `DIST#${id}`,
   meta: () => "META",
   volume: (period: string) => `VOLUME#${period}`,
+  health: (period: string) => `HEALTH#${period}`,
   treePK: () => "TREE",
   parentPK: (parentId: string) => `PARENT#${parentId}`,
   systemPK: () => "SYSTEM",

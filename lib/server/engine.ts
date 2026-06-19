@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto"
 import { TransactWriteCommand } from "@aws-sdk/lib-dynamodb"
 import { computeCommissions, round2 } from "@/lib/commission"
 import { insertSaleTxn, listPendingOutbox, markOutboxProcessed } from "./ledger"
-import { addToVolume, getDistributor } from "./repository"
+import { addToVolume, getDistributor, putHealthRollup } from "./repository"
+import { getNetworkHealth } from "./health"
 import { docClient, keys, TABLE_NAME } from "./dynamo"
 import { currentPeriod, type LedgerEntry, type Sale, type SaleType } from "@/lib/types"
 import type { CommissionLine } from "@/lib/commission"
@@ -178,6 +179,10 @@ export async function drainOutbox(limit = 25): Promise<number> {
   const events = await listPendingOutbox(limit)
   let count = 0
 
+  // Collect unique (rootId, period) pairs affected by this drain batch for health rollups.
+  // Key format: `${rootId}|${period}` — deduped so each subtree is recomputed at most once.
+  const affectedRootPeriods = new Set<string>()
+
   for (const event of events) {
     const payload = event.payload as OutboxPayload
     const { saleId, sellerId, sellerPath, period, volume, saleType, beneficiaries } = payload
@@ -242,9 +247,27 @@ export async function drainOutbox(limit = 25): Promise<number> {
       }
     }
 
+    // Collect every node on the seller's path — each is a subtree root whose health changed.
+    // sellerPath is root → seller (e.g. "001/003/009"), so split gives all affected root ids.
+    for (const rootId of sellerPath.split("/")) {
+      affectedRootPeriods.add(`${rootId}|${period}`)
+    }
+
     // Mark outbox row as processed AFTER successful DynamoDB apply
     await markOutboxProcessed(event.id)
     count++
+  }
+
+  // After the per-event apply loop, recompute health rollups once per unique (root, period).
+  // Health rollup failures must never fail the drain — money/aggregates already applied.
+  for (const key of affectedRootPeriods) {
+    const [rootId, period] = key.split("|") as [string, string]
+    try {
+      const health = await getNetworkHealth(rootId)
+      await putHealthRollup(rootId, health.period, health)
+    } catch (e) {
+      console.error("[drain] health rollup failed for", rootId, e)
+    }
   }
 
   return count

@@ -2,6 +2,7 @@ import {
   BatchGetCommand,
   BatchWriteCommand,
   GetCommand,
+  PutCommand,
   QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb"
@@ -9,6 +10,7 @@ import { round2 } from "@/lib/commission"
 import { docClient, keys, TABLE_NAME } from "./dynamo"
 import {
   type Distributor,
+  type NetworkHealth,
   type PlanConfig,
   type PlexusConfig,
   type RankThreshold,
@@ -256,6 +258,35 @@ export async function addToVolume(
       ExpressionAttributeValues: { ...values, ":did": id, ":period": period },
     }),
   )
+}
+
+/* ----------------------------- health rollups ----------------------------- */
+
+export async function putHealthRollup(rootId: string, period: string, health: NetworkHealth): Promise<void> {
+  await docClient.send(new PutCommand({
+    TableName: TABLE_NAME,
+    Item: {
+      PK: keys.dist(rootId), SK: keys.health(period),
+      rootId, period,
+      score: health.score, totalRetail: health.totalRetail, totalStarter: health.totalStarter,
+      recruitmentRatio: (health.totalRetail + health.totalStarter) > 0
+        ? Math.round((health.totalStarter / (health.totalRetail + health.totalStarter)) * 1000) / 1000 : 0,
+      flaggedCount: health.flagged.length,
+      nodes: health.nodes, flagged: health.flagged,
+      updatedAt: new Date().toISOString(),
+    },
+  }))
+}
+
+export async function getHealthRollup(rootId: string, period: string): Promise<NetworkHealth | null> {
+  const res = await docClient.send(new GetCommand({ TableName: TABLE_NAME, Key: { PK: keys.dist(rootId), SK: keys.health(period) } }))
+  if (!res.Item) return null
+  const i = res.Item
+  return {
+    rootId: String(i.rootId), period: String(i.period), score: Number(i.score),
+    totalRetail: Number(i.totalRetail), totalStarter: Number(i.totalStarter),
+    nodes: (i.nodes ?? []) as NetworkHealth["nodes"], flagged: (i.flagged ?? []) as NetworkHealth["flagged"],
+  }
 }
 
 /* --------------------------------- mappers ------------------------------- */
