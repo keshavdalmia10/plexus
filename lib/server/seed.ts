@@ -7,7 +7,7 @@ import {
 import { docClient, keys, TABLE_NAME } from "./dynamo"
 import { DEFAULT_PLAN, DEFAULT_RANKS, getAllDistributors, putDistributor } from "./repository"
 import { getPool } from "./dsql"
-import { recordSale } from "./engine"
+import { drainOutbox, recordSale } from "./engine"
 import type { Distributor, Rank, SaleType } from "@/lib/types"
 
 /* ------------------------------ tree shape ------------------------------- */
@@ -384,6 +384,14 @@ export async function reseed(): Promise<{
   await seedDistributors()
   const sales = await seedSales()
   seededInProcess = true
+
+  // Phase C: drain all pending outbox events synchronously so aggregates are
+  // fully applied before reseed() returns. recordSale fires fire-and-forget
+  // drains that may not have completed yet — drain until the queue is empty.
+  let drained: number
+  do {
+    drained = await drainOutbox(100)
+  } while (drained > 0)
 
   const sellers = buildDistributors().length
   const ledgerRes = await getPool().query(

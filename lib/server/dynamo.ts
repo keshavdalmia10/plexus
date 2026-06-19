@@ -37,4 +37,5 @@ export const keys = {
   parentPK: (parentId: string) => `PARENT#${parentId}`,
   systemPK: () => "SYSTEM",
   configPK: () => "CONFIG",
+  eventPK: (id: string) => `EVENT#${id}`,
 }

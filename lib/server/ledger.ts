@@ -98,5 +98,23 @@ export async function getLedgerSums(): Promise<
   return res.rows
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function listPendingOutbox(limit = 25): Promise<{ id: string; payload: any }[]> {
+  const res = await getPool().query(
+    "SELECT id, payload FROM outbox WHERE processed_at IS NULL ORDER BY created_at LIMIT $1",
+    [limit],
+  )
+  return res.rows.map((r) => ({ id: r.id, payload: r.payload }))
+}
+
+export async function markOutboxProcessed(id: string): Promise<void> {
+  await occRetry(() =>
+    getPool().query(
+      "UPDATE outbox SET processed_at = now() WHERE id = $1 AND processed_at IS NULL",
+      [id],
+    ),
+  )
+}
+
 export { computeCommissions }
 export type { PoolClient }
