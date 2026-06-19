@@ -153,6 +153,7 @@ export async function ensureSeeded(): Promise<void> {
     return
   }
   console.log("[v0] Seeding Plexus demo data...")
+  await seedConfig()
   await seedDistributors()
   await seedSales()
   seededInProcess = true
@@ -355,16 +356,16 @@ export async function wipeAll(): Promise<void> {
   // SEED marker
   deleteKeys.push({ PK: keys.systemPK(), SK: "SEED" })
 
-  // Batch-delete in chunks of 25
+  // Batch-delete in chunks of 25, draining UnprocessedItems on each chunk
   for (let i = 0; i < deleteKeys.length; i += 25) {
     const chunk = deleteKeys.slice(i, i + 25)
-    await docClient.send(
-      new BatchWriteCommand({
-        RequestItems: {
-          [TABLE_NAME]: chunk.map((Key) => ({ DeleteRequest: { Key } })),
-        },
-      }),
-    )
+    let request: Record<string, { DeleteRequest: { Key: { PK: string; SK: string } } }[]> = {
+      [TABLE_NAME]: chunk.map((Key) => ({ DeleteRequest: { Key } })),
+    }
+    while (request[TABLE_NAME]?.length) {
+      const res = await docClient.send(new BatchWriteCommand({ RequestItems: request }))
+      request = (res.UnprocessedItems ?? {}) as typeof request
+    }
   }
 }
 
