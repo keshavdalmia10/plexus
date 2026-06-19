@@ -9,8 +9,27 @@ import { round2 } from "@/lib/commission"
 import { docClient, keys, TABLE_NAME } from "./dynamo"
 import {
   type Distributor,
+  type PlanConfig,
+  type PlexusConfig,
+  type RankThreshold,
   type VolumeAggregate,
 } from "@/lib/types"
+
+/* --------------------------------- config -------------------------------- */
+
+export const DEFAULT_PLAN: PlanConfig = {
+  planType: "unilevel",
+  levelRates: [0.1, 0.05, 0.03, 0.02, 0.01],
+  maxDepth: 5,
+}
+
+export const DEFAULT_RANKS: RankThreshold[] = [
+  { rankName: "Associate", minGv: 0, minPv: 0, order: 0 },
+  { rankName: "Builder", minGv: 500, minPv: 100, order: 1 },
+  { rankName: "Director", minGv: 2000, minPv: 200, order: 2 },
+  { rankName: "Executive", minGv: 5000, minPv: 300, order: 3 },
+  { rankName: "Diamond", minGv: 12000, minPv: 400, order: 4 },
+]
 
 /* ---------------------------------- reads -------------------------------- */
 
@@ -113,6 +132,44 @@ export async function getVolumes(
     }
   }
   return out
+}
+
+/**
+ * Plan + rank configuration (access pattern #7). Single Query on the CONFIG
+ * partition — never a Scan. Falls back to standard defaults when unseeded.
+ */
+export async function getConfig(): Promise<PlexusConfig> {
+  const res = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk",
+      ExpressionAttributeValues: { ":pk": keys.configPK() },
+    }),
+  )
+  const items = res.Items ?? []
+  const planItem = items.find((i) => i.SK === "PLAN")
+  const rankItems = items.filter((i) => String(i.SK).startsWith("RANK#"))
+  if (!planItem && rankItems.length === 0) {
+    return { plan: DEFAULT_PLAN, ranks: DEFAULT_RANKS }
+  }
+  const plan: PlanConfig = planItem
+    ? {
+        planType: String(planItem.planType ?? DEFAULT_PLAN.planType),
+        levelRates: (planItem.levelRates as number[] | undefined)?.map(Number) ??
+          DEFAULT_PLAN.levelRates,
+        maxDepth: Number(planItem.maxDepth ?? DEFAULT_PLAN.maxDepth),
+      }
+    : DEFAULT_PLAN
+  const ranks: RankThreshold[] =
+    rankItems.length > 0
+      ? rankItems.map((i) => ({
+          rankName: i.rankName as RankThreshold["rankName"],
+          minGv: Number(i.minGv),
+          minPv: Number(i.minPv),
+          order: Number(i.order),
+        }))
+      : DEFAULT_RANKS
+  return { plan, ranks }
 }
 
 /* --------------------------------- writes -------------------------------- */

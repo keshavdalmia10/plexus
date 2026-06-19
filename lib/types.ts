@@ -106,6 +106,20 @@ export interface LockedLevels {
   levels: number[]
 }
 
+export interface RankThreshold { rankName: Rank; minGv: number; minPv: number; order: number }
+export interface PlanConfig { planType: string; levelRates: number[]; maxDepth: number }
+export interface PlexusConfig { plan: PlanConfig; ranks: RankThreshold[] }
+
+/** Highest rank whose gv/pv minima are both met. Ranks need not be pre-sorted. */
+export function rankForVolume(gv: number, pv: number, ranks: RankThreshold[]): Rank {
+  const sorted = [...ranks].sort((a, b) => a.order - b.order)
+  let result: Rank = sorted[0]?.rankName ?? "Associate"
+  for (const r of sorted) {
+    if (gv >= r.minGv && pv >= r.minPv) result = r.rankName
+  }
+  return result
+}
+
 export const COMMISSION_RATES = [0.1, 0.05, 0.03, 0.02, 0.01] as const
 
 export function currentPeriod(d: Date = new Date()): string {

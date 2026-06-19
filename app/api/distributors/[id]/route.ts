@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import {
+  getConfig,
   getDistributor,
   getVolume,
 } from "@/lib/server/repository"
 import { badRequest, isValidDistId, notFound, serverError } from "@/lib/server/validate"
-import { currentPeriod, previousPeriod } from "@/lib/types"
+import { currentPeriod, previousPeriod, rankForVolume } from "@/lib/types"
 
 export async function GET(
   _req: Request,
@@ -15,11 +16,13 @@ export async function GET(
   try {
     const distributor = await getDistributor(id)
     if (!distributor) return notFound("Distributor not found")
-    const [volume, previousVolume] = await Promise.all([
+    const [volume, previousVolume, config] = await Promise.all([
       getVolume(id, currentPeriod()),
       getVolume(id, previousPeriod()),
+      getConfig(),
     ])
-    return NextResponse.json({ distributor, volume, previousVolume })
+    const rank = rankForVolume(volume.gv, volume.pv, config.ranks)
+    return NextResponse.json({ distributor: { ...distributor, rank }, volume, previousVolume })
   } catch (error) {
     return serverError(error)
   }

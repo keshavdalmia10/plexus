@@ -1,6 +1,12 @@
-import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb"
+import {
+  BatchWriteCommand,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+} from "@aws-sdk/lib-dynamodb"
 import { docClient, keys, TABLE_NAME } from "./dynamo"
-import { putDistributor } from "./repository"
+import { DEFAULT_PLAN, DEFAULT_RANKS, getAllDistributors, putDistributor } from "./repository"
+import { getPool } from "./dsql"
 import { recordSale } from "./engine"
 import type { Distributor, Rank, SaleType } from "@/lib/types"
 
@@ -77,6 +83,9 @@ const NAMES: Record<string, string> = {
 const STARTER_HEAVY_ROOTS = ["014", "027"]
 
 const INACTIVE = new Set(["012", "020", "034", "038"])
+
+// Number of deterministic sales generated per seed run.
+const SALE_COUNT = 150
 
 // Sellers already on the Pro plan in fresh seeds (existing rows default to free).
 const PRO_SELLERS = new Set(["002", "009"])
@@ -180,6 +189,39 @@ function rankFor(id: string, depth: number): Rank {
   return "Associate"
 }
 
+/** Seed the CONFIG partition: PLAN item + one RANK#<order> item per rank. */
+async function seedConfig(): Promise<void> {
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: keys.configPK(),
+        SK: "PLAN",
+        planType: DEFAULT_PLAN.planType,
+        levelRates: DEFAULT_PLAN.levelRates,
+        maxDepth: DEFAULT_PLAN.maxDepth,
+      },
+    }),
+  )
+  await Promise.all(
+    DEFAULT_RANKS.map((r) =>
+      docClient.send(
+        new PutCommand({
+          TableName: TABLE_NAME,
+          Item: {
+            PK: keys.configPK(),
+            SK: `RANK#${r.order}`,
+            rankName: r.rankName,
+            minGv: r.minGv,
+            minPv: r.minPv,
+            order: r.order,
+          },
+        }),
+      ),
+    ),
+  )
+}
+
 async function seedDistributors(): Promise<void> {
   const distributors = buildDistributors()
   for (let i = 0; i < distributors.length; i += 5) {
@@ -187,7 +229,7 @@ async function seedDistributors(): Promise<void> {
   }
 }
 
-async function seedSales(): Promise<void> {
+async function seedSales(): Promise<number> {
   const rand = mulberry32(20260611)
   const distributors = buildDistributors()
   const active = distributors.filter((d) => d.status === "active")
@@ -204,7 +246,7 @@ async function seedSales(): Promise<void> {
   const now = new Date()
   const sales: { distributorId: string; type: SaleType; at: Date }[] = []
 
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < SALE_COUNT; i++) {
     const seller = active[Math.floor(rand() * active.length)]
     const starterBias = starterHeavyIds.has(seller.id) ? 0.8 : 0.04
     const type: SaleType = rand() < starterBias ? "starter" : "retail"
@@ -229,22 +271,124 @@ async function seedSales(): Promise<void> {
 
   sales.sort((a, b) => a.at.getTime() - b.at.getTime())
 
-  for (let i = 0; i < sales.length; i += 4) {
+  // Pre-resolve products in deterministic order so chunked Promise.all does not
+  // perturb the RNG sequence, then assign a deterministic UUID-shaped saleId.
+  const records = sales.map((s, i) => {
+    const pool = PRODUCTS[s.type]
+    const product = pool[Math.floor(rand() * pool.length)]
+    const saleId = `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`
+    return { ...s, product, saleId }
+  })
+
+  for (let i = 0; i < records.length; i += 4) {
     await Promise.all(
-      sales.slice(i, i + 4).map((s) => {
-        const pool = PRODUCTS[s.type]
-        const product = pool[Math.floor(rand() * pool.length)]
-        return recordSale(
+      records.slice(i, i + 4).map((r) =>
+        recordSale(
           {
-            distributorId: s.distributorId,
-            productId: product.id,
-            amount: product.amount,
-            volume: product.volume,
-            type: s.type,
+            distributorId: r.distributorId,
+            productId: r.product.id,
+            amount: r.product.amount,
+            volume: r.product.volume,
+            type: r.type,
+            saleId: r.saleId,
           },
-          s.at,
-        )
+          r.at,
+        ),
+      ),
+    )
+  }
+
+  return records.length
+}
+
+/* ----------------------------- wipe + reseed ----------------------------- */
+
+/** Delete all data from both stores without using DynamoDB Scan. */
+export async function wipeAll(): Promise<void> {
+  const pool = getPool()
+  // 1. Clear DSQL tables
+  await pool.query("DELETE FROM ledger")
+  await pool.query("DELETE FROM sales")
+  await pool.query("DELETE FROM outbox")
+
+  // 2. Collect all DDB keys to delete (no Scan)
+  const deleteKeys: { PK: string; SK: string }[] = []
+
+  const dists = await getAllDistributors()
+  for (const d of dists) {
+    // Distributor meta
+    deleteKeys.push({ PK: keys.dist(d.id), SK: keys.meta() })
+    // Tree index item
+    deleteKeys.push({ PK: keys.treePK(), SK: d.path })
+    // Parent edge item
+    if (d.parentId) {
+      deleteKeys.push({ PK: keys.parentPK(d.parentId), SK: d.id })
+    }
+    // VOLUME# aggregate items
+    const volRes = await docClient.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+        ExpressionAttributeValues: {
+          ":pk": keys.dist(d.id),
+          ":sk": "VOLUME#",
+        },
+      }),
+    )
+    for (const item of volRes.Items ?? []) {
+      deleteKeys.push({ PK: String(item.PK), SK: String(item.SK) })
+    }
+  }
+
+  // CONFIG partition
+  const configRes = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk",
+      ExpressionAttributeValues: { ":pk": keys.configPK() },
+    }),
+  )
+  for (const item of configRes.Items ?? []) {
+    deleteKeys.push({ PK: String(item.PK), SK: String(item.SK) })
+  }
+
+  // SEED marker
+  deleteKeys.push({ PK: keys.systemPK(), SK: "SEED" })
+
+  // Batch-delete in chunks of 25
+  for (let i = 0; i < deleteKeys.length; i += 25) {
+    const chunk = deleteKeys.slice(i, i + 25)
+    await docClient.send(
+      new BatchWriteCommand({
+        RequestItems: {
+          [TABLE_NAME]: chunk.map((Key) => ({ DeleteRequest: { Key } })),
+        },
       }),
     )
   }
+}
+
+/**
+ * Wipe both stores and reseed from scratch. Always re-runs regardless of the
+ * in-process guard. Returns counts for verification.
+ */
+export async function reseed(): Promise<{
+  sellers: number
+  sales: number
+  ledgerRows: number
+}> {
+  seededInProcess = false
+  await wipeAll()
+  await seedConfig()
+  await seedDistributors()
+  const sales = await seedSales()
+  seededInProcess = true
+
+  const sellers = buildDistributors().length
+  const ledgerRes = await getPool().query(
+    "SELECT count(*)::int n FROM ledger",
+  )
+  const ledgerRows = Number(ledgerRes.rows[0].n)
+
+  return { sellers, sales, ledgerRows }
 }

@@ -36,4 +36,5 @@ export const keys = {
   treePK: () => "TREE",
   parentPK: (parentId: string) => `PARENT#${parentId}`,
   systemPK: () => "SYSTEM",
+  configPK: () => "CONFIG",
 }
