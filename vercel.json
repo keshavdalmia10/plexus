@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/jobs/drain-outbox",
-      "schedule": "* * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }

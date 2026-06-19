@@ -71,8 +71,8 @@
   <rect x="232" y="228" width="256" height="90" rx="8"
         fill="#f0f0f0" stroke="#555" stroke-width="1.5"/>
   <text x="360" y="250" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">Outbox Drainer</text>
-  <text x="360" y="267" text-anchor="middle" font-size="11" fill="#374151">Vercel Cron (every 1 min)</text>
-  <text x="360" y="282" text-anchor="middle" font-size="11" fill="#374151">fire-and-forget dispatch</text>
+  <text x="360" y="267" text-anchor="middle" font-size="11" fill="#374151">fire-and-forget after each sale (real-time)</text>
+  <text x="360" y="282" text-anchor="middle" font-size="11" fill="#374151">+ Vercel Cron backstop (daily on Hobby)</text>
   <text x="360" y="297" text-anchor="middle" font-size="11" fill="#374151">→ applies outbox rows to DynamoDB</text>
   <text x="360" y="312" text-anchor="middle" font-size="11" fill="#374151">exactly-once via EVENT# marker</text>
 
@@ -193,7 +193,7 @@
   <path d="M690,355 L690,430 L360,430 L360,318"
         fill="none" stroke="#16a34a" stroke-width="2"
         stroke-dasharray="6,3" marker-end="url(#arrow-green)"/>
-  <text x="530" y="446" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">2. listPendingOutbox (poll every ~1 min)</text>
+  <text x="530" y="446" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">2. listPendingOutbox (after each sale + cron backstop)</text>
 
   <!-- ═══════════════════════════════════════════════
        ARROWS: Outbox Drainer → DynamoDB
