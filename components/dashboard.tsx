@@ -1,6 +1,7 @@
 "use client"
 
-import useSWR from "swr"
+import { useEffect } from "react"
+import useSWR, { useSWRConfig } from "swr"
 import { fetcher, useActingAs } from "./acting-as"
 import { LedgerFeed } from "./ledger-feed"
 import { RecordSale } from "./record-sale"
@@ -22,6 +23,7 @@ interface SummaryResponse {
 
 export function Dashboard() {
   const { actingAs } = useActingAs()
+  const { mutate } = useSWRConfig()
 
   const { data: summary } = useSWR<SummaryResponse>(
     `/api/distributors/${actingAs}`,
@@ -33,6 +35,17 @@ export function Dashboard() {
     fetcher,
     POLL,
   )
+
+  useEffect(() => {
+    if (!actingAs) return
+    const es = new EventSource(`/api/stream/${actingAs}`)
+    es.onmessage = () => {
+      mutate(`/api/distributors/${actingAs}`)
+      mutate(`/api/distributors/${actingAs}/ledger?limit=25`)
+    }
+    es.onerror = () => { es.close() } // SWR polling remains the fallback
+    return () => es.close()
+  }, [actingAs, mutate])
 
   const d = summary?.distributor
   const v = summary?.volume
