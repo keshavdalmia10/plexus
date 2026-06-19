@@ -5,6 +5,7 @@ import {
   QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb"
+import { round2 } from "@/lib/commission"
 import { docClient, keys, TABLE_NAME } from "./dynamo"
 import {
   type Distributor,
@@ -231,6 +232,3 @@ function toVolume(
   }
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100
-}

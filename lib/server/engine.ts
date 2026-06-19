@@ -75,6 +75,11 @@ export async function propagateAggregates(
   const volumeField = sale.type === "retail" ? "retailVolume" : "starterVolume"
   const paid = new Map(commissions.map((c) => [c.beneficiaryId, c.amount]))
   const ancestors = sellerPath.split("/").slice(0, -1).reverse()
+  // Phase B propagation is best-effort and NOT idempotent: the DynamoDB ADDs run
+  // after the DSQL commit (the source of truth). If a call here fails or the
+  // request is retried, aggregates can drift or double-count — they are always
+  // rebuildable from the DSQL ledger (see scripts/reconcile.ts), and Phase C's
+  // transactional outbox replaces this with exactly-once application.
   await Promise.all([
     addToVolume(sale.distributorId, period, {
       pv: sale.volume, gv: sale.volume, [volumeField]: sale.volume,

@@ -1,3 +1,4 @@
+import { round2 } from "@/lib/commission"
 import { getDistributor, getSubtree, getVolumes } from "./repository"
 import {
   currentPeriod,
@@ -94,6 +95,3 @@ export async function getNetworkHealth(rootId: string): Promise<NetworkHealth> {
   }
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100
-}
