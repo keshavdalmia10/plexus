@@ -19,8 +19,6 @@ export const docClient = DynamoDBDocumentClient.from(client, {
 /* ---- Key builders (single-table design) ----------------------------------
  *
  * Distributor meta:  PK=DIST#<id>            SK=META
- * Sale:              PK=DIST#<id>            SK=SALE#<iso>#<saleId>
- * Ledger entry:      PK=DIST#<beneficiary>   SK=LEDGER#<iso>#<txnId>
  * Volume aggregate:  PK=DIST#<id>            SK=VOLUME#<YYYY-MM>
  *
  * Tree index item:   PK=TREE                 SK=<path>          (subtree via begins_with)
@@ -34,8 +32,6 @@ export const docClient = DynamoDBDocumentClient.from(client, {
 export const keys = {
   dist: (id: string) => `DIST#${id}`,
   meta: () => "META",
-  sale: (iso: string, saleId: string) => `SALE#${iso}#${saleId}`,
-  ledger: (iso: string, txnId: string) => `LEDGER#${iso}#${txnId}`,
   volume: (period: string) => `VOLUME#${period}`,
   treePK: () => "TREE",
   parentPK: (parentId: string) => `PARENT#${parentId}`,

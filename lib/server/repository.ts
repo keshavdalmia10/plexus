@@ -2,19 +2,12 @@ import {
   BatchGetCommand,
   BatchWriteCommand,
   GetCommand,
-  PutCommand,
   QueryCommand,
   UpdateCommand,
 } from "@aws-sdk/lib-dynamodb"
-import { nanoid } from "nanoid"
 import { docClient, keys, TABLE_NAME } from "./dynamo"
 import {
-  COMMISSION_RATES,
-  currentPeriod,
   type Distributor,
-  type LedgerEntry,
-  type Sale,
-  type SaleType,
   type VolumeAggregate,
 } from "@/lib/types"
 
@@ -121,34 +114,6 @@ export async function getVolumes(
   return out
 }
 
-export async function getLedger(
-  id: string,
-  limit = 25,
-): Promise<LedgerEntry[]> {
-  const res = await docClient.send(
-    new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
-      ExpressionAttributeValues: {
-        ":pk": keys.dist(id),
-        ":sk": "LEDGER#",
-      },
-      ScanIndexForward: false,
-      Limit: limit,
-    }),
-  )
-  return (res.Items ?? []).map((i) => ({
-    txnId: String(i.txnId),
-    beneficiaryId: id,
-    sourceDistId: String(i.sourceDistId),
-    sourceName: i.sourceName ? String(i.sourceName) : undefined,
-    level: Number(i.level),
-    amount: Number(i.amount),
-    period: String(i.period),
-    timestamp: String(i.timestamp),
-  }))
-}
-
 /* --------------------------------- writes -------------------------------- */
 
 /** Create a distributor: meta item + tree index item + parent edge item. */
@@ -206,111 +171,8 @@ export async function setPlan(
   return { ...d, plan }
 }
 
-export interface RecordSaleInput {
-  distributorId: string
-  productId: string
-  amount: number
-  volume: number
-  type: SaleType
-}
-
-export interface RecordSaleResult {
-  sale: Sale
-  commissions: LedgerEntry[]
-}
-
-/**
- * Commission engine. Records the sale, increments the seller's volume
- * aggregate, rolls GV up the full ancestry chain, and pays commissions to
- * the nearest 5 upline members at 10/5/3/2/1%.
- */
-export async function recordSale(
-  input: RecordSaleInput,
-  at: Date = new Date(),
-): Promise<RecordSaleResult> {
-  const seller = await getDistributor(input.distributorId)
-  if (!seller) throw new Error(`Unknown distributor: ${input.distributorId}`)
-
-  const iso = at.toISOString()
-  const period = currentPeriod(at)
-  const saleId = nanoid(10)
-
-  const sale: Sale = {
-    saleId,
-    distributorId: seller.id,
-    productId: input.productId,
-    amount: round2(input.amount),
-    volume: round2(input.volume),
-    type: input.type,
-    timestamp: iso,
-  }
-
-  // Ancestry, nearest first, excluding self.
-  const ancestors = seller.path.split("/").slice(0, -1).reverse()
-
-  const volumeField = input.type === "retail" ? "retailVolume" : "starterVolume"
-
-  const writes: Promise<unknown>[] = [
-    // Sale item
-    docClient.send(
-      new PutCommand({
-        TableName: TABLE_NAME,
-        Item: {
-          PK: keys.dist(seller.id),
-          SK: keys.sale(iso, saleId),
-          ...sale,
-        },
-      }),
-    ),
-    // Seller volume aggregate: PV + GV + retail/starter split
-    addToVolume(seller.id, period, {
-      pv: sale.volume,
-      gv: sale.volume,
-      [volumeField]: sale.volume,
-    }),
-  ]
-
-  const commissions: LedgerEntry[] = []
-
-  ancestors.forEach((ancestorId, i) => {
-    const updates: Record<string, number> = { gv: sale.volume }
-    if (i < COMMISSION_RATES.length) {
-      const commission = round2(sale.amount * COMMISSION_RATES[i])
-      const txnId = nanoid(10)
-      const entry: LedgerEntry = {
-        txnId,
-        beneficiaryId: ancestorId,
-        sourceDistId: seller.id,
-        sourceName: seller.name,
-        level: i + 1,
-        amount: commission,
-        period,
-        timestamp: iso,
-      }
-      commissions.push(entry)
-      updates.commissionEarned = commission
-      writes.push(
-        docClient.send(
-          new PutCommand({
-            TableName: TABLE_NAME,
-            Item: {
-              PK: keys.dist(ancestorId),
-              SK: keys.ledger(iso, txnId),
-              ...entry,
-            },
-          }),
-        ),
-      )
-    }
-    writes.push(addToVolume(ancestorId, period, updates))
-  })
-
-  await Promise.all(writes)
-  return { sale, commissions }
-}
-
 /** Atomic ADD upsert on a monthly volume aggregate item. */
-function addToVolume(
+export async function addToVolume(
   id: string,
   period: string,
   fields: Record<string, number>,

@@ -1,6 +1,7 @@
 import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb"
 import { docClient, keys, TABLE_NAME } from "./dynamo"
-import { putDistributor, recordSale } from "./repository"
+import { putDistributor } from "./repository"
+import { recordSale } from "./engine"
 import type { Distributor, Rank, SaleType } from "@/lib/types"
 
 /* ------------------------------ tree shape ------------------------------- */

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getLedger } from "@/lib/server/repository"
+import { getLedgerFeed } from "@/lib/server/ledger"
 import { badRequest, isValidDistId, serverError } from "@/lib/server/validate"
 
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
     return badRequest("limit must be between 1 and 100")
   }
   try {
-    const entries = await getLedger(id, limit)
+    const entries = await getLedgerFeed(id, limit)
     return NextResponse.json({ entries })
   } catch (error) {
     return serverError(error)

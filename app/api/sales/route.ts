@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { recordSale } from "@/lib/server/repository"
+import { recordSale } from "@/lib/server/engine"
 import { badRequest, isValidDistId, serverError } from "@/lib/server/validate"
 import type { SaleType } from "@/lib/types"
 
