@@ -61,7 +61,7 @@ The DynamoDB table (`Plexus`) holds every entity type under one PK/SK space:
 |-----------|----|----|------------|
 | Seller profile | `DIST#<id>` | `META` | `name`, `email`, `parentId`, `sponsorId`, `path`, `depth`, `rank`, `status`, `plan` |
 | Volume aggregate | `DIST#<id>` | `VOLUME#<YYYY-MM>` | `pv`, `gv`, `retailVolume`, `starterVolume`, `commissionEarned`, `period` |
-| Health rollup | `DIST#<id>` | `HEALTH#<YYYY-MM>` | `recruitmentRatio`, `healthScore`, `flaggedCount` |
+| Health rollup | `DIST#<id>` | `HEALTH#<YYYY-MM>` | `score`, `recruitmentRatio`, `flaggedCount`, `nodes`, `flagged` |
 | Tree index item | `TREE` | `<path>` | full seller record — enables `begins_with` subtree |
 | Parent edge item | `PARENT#<parentId>` | `<childId>` | full seller record — direct-children lookup |
 | Plan config | `CONFIG` | `PLAN` | `planType`, `levelRates[]`, `maxDepth` |
@@ -165,7 +165,7 @@ Plexus is freemium. The commission engine always pays all 5 upline levels for ev
 
 ## Local Setup
 
-**Prerequisites:** Node.js 20+, pnpm, a Vercel project linked to this repo with the AWS Databases marketplace integration (provisions DynamoDB + Aurora DSQL over OIDC — no static AWS credentials in the repo).
+**Prerequisites:** Node.js 24+, pnpm, a Vercel project linked to this repo with the AWS Databases marketplace integration (provisions DynamoDB + Aurora DSQL over OIDC — no static AWS credentials in the repo).
 
 ```bash
 # 1. Pull environment variables (OIDC token, DSQL endpoint, DynamoDB table name)
@@ -181,7 +181,7 @@ pnpm exec tsx scripts/dsql-schema.ts
 #    Option A: HTTP (app must be running)
 curl -X POST http://localhost:3000/api/seed \
      -H "x-seed-token: $SEED_TOKEN"
-#    Option B: direct script
+#    Option B: direct script (no running server needed)
 pnpm exec tsx scripts/reseed.ts
 
 # 5. Start the dev server
