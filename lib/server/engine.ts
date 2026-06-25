@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { TransactWriteCommand } from "@aws-sdk/lib-dynamodb"
+import { waitUntil } from "@vercel/functions"
 import { computeCommissions, round2 } from "@/lib/commission"
 import { insertSaleTxn, listPendingOutbox, markOutboxProcessed } from "./ledger"
 import { addToVolume, getDistributor, putHealthRollup } from "./repository"
@@ -126,8 +127,18 @@ export async function recordSale(
     outboxPayload: buildOutboxPayload(sale, seller.path, commissions, period),
   })
 
-  // 3 — fire-and-forget drain (Phase C: exactly-once via transactional outbox)
-  void drainOutbox().catch((e) => console.error("[drain]", e))
+  // 3 — drain after commit (Phase C: exactly-once via transactional outbox).
+  // On Vercel serverless the function instance freezes once the response is
+  // sent, so a bare fire-and-forget would be cut off before the drain runs —
+  // waitUntil keeps the instance alive until it completes. Outside a Vercel
+  // request (local scripts / tests) waitUntil throws; the promise still runs to
+  // completion because the Node process stays alive.
+  const drain = drainOutbox().catch((e) => console.error("[drain]", e))
+  try {
+    waitUntil(drain)
+  } catch {
+    // not in a Vercel request context — let the promise run
+  }
 
   return {
     sale,
