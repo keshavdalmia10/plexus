@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1100" height="700"
+     viewBox="0 0 1100 700"
+     font-family="Inter, Segoe UI, Arial, sans-serif">
+
+  <!-- Background -->
+  <rect width="1100" height="700" fill="#ffffff"/>
+
+  <!-- ═══════════════════════════════════════════════
+       DEFS: arrowhead markers
+  ═══════════════════════════════════════════════ -->
+  <defs>
+    <!-- default dark arrow -->
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#374151"/>
+    </marker>
+    <!-- green arrow for outbox/exactly-once path -->
+    <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#16a34a"/>
+    </marker>
+    <!-- blue arrow for read paths -->
+    <marker id="arrow-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#2563eb"/>
+    </marker>
+    <!-- blue arrow reversed (for bidirectional) -->
+    <marker id="arrow-blue-rev" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto-start-reverse">
+      <path d="M8,0 L8,6 L0,3 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════════
+       TITLE
+  ═══════════════════════════════════════════════ -->
+  <text x="550" y="30" text-anchor="middle" font-size="17" font-weight="700" fill="#111827">
+    Plexus — Polyglot Persistence (Aurora DSQL + Amazon DynamoDB)
+  </text>
+
+  <!-- ═══════════════════════════════════════════════
+       (A) BROWSER / DASHBOARD  [x=18, y=60, w=160, h=90]
+  ═══════════════════════════════════════════════ -->
+  <rect x="18" y="200" width="160" height="90" rx="8"
+        fill="#f9fafb" stroke="#6b7280" stroke-width="2"/>
+  <text x="98" y="222" text-anchor="middle" font-size="14" font-weight="700" fill="#111827">Browser / Dashboard</text>
+  <text x="98" y="241" text-anchor="middle" font-size="11" fill="#374151">Next.js UI</text>
+  <text x="98" y="256" text-anchor="middle" font-size="11" fill="#374151">SWR + EventSource (SSE)</text>
+  <text x="98" y="271" text-anchor="middle" font-size="11" fill="#374151">(client)</text>
+
+  <!-- ═══════════════════════════════════════════════
+       Arrow: Browser → Vercel
+  ═══════════════════════════════════════════════ -->
+  <line x1="178" y1="245" x2="218" y2="245"
+        stroke="#374151" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- ═══════════════════════════════════════════════
+       (B) VERCEL GROUP  [x=220, y=90, w=280, h=370]
+  ═══════════════════════════════════════════════ -->
+  <rect x="220" y="90" width="280" height="380" rx="8"
+        fill="#fafafa" stroke="#111111" stroke-width="2.2"/>
+  <text x="360" y="113" text-anchor="middle" font-size="14" font-weight="700" fill="#111111">Vercel</text>
+
+  <!-- Route Handlers box [x=232, y=128, w=256, h=80] -->
+  <rect x="232" y="125" width="256" height="80" rx="8"
+        fill="#f0f0f0" stroke="#555" stroke-width="1.5"/>
+  <text x="360" y="148" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">Next.js Route Handlers</text>
+  <text x="360" y="165" text-anchor="middle" font-size="11" fill="#374151">/api/* endpoints</text>
+  <text x="360" y="180" text-anchor="middle" font-size="11" fill="#374151">auth / validation / fan-out</text>
+  <text x="360" y="195" text-anchor="middle" font-size="11" fill="#374151">(Vercel Serverless Functions)</text>
+
+  <!-- Outbox Drainer box [x=232, y=228, w=256, h=90] -->
+  <rect x="232" y="228" width="256" height="90" rx="8"
+        fill="#f0f0f0" stroke="#555" stroke-width="1.5"/>
+  <text x="360" y="250" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">Outbox Drainer</text>
+  <text x="360" y="267" text-anchor="middle" font-size="11" fill="#374151">fire-and-forget after each sale (real-time)</text>
+  <text x="360" y="282" text-anchor="middle" font-size="11" fill="#374151">+ Vercel Cron backstop (daily on Hobby)</text>
+  <text x="360" y="297" text-anchor="middle" font-size="11" fill="#374151">→ applies outbox rows to DynamoDB</text>
+  <text x="360" y="312" text-anchor="middle" font-size="11" fill="#374151">exactly-once via EVENT# marker</text>
+
+  <!-- SSE Stream box [x=232, y=338, w=256, h=68] -->
+  <rect x="232" y="338" width="256" height="68" rx="8"
+        fill="#f0f0f0" stroke="#555" stroke-width="1.5"/>
+  <text x="360" y="360" text-anchor="middle" font-size="13" font-weight="700" fill="#111827">SSE Stream</text>
+  <text x="360" y="377" text-anchor="middle" font-size="11" fill="#374151">/api/stream/[id]</text>
+  <text x="360" y="393" text-anchor="middle" font-size="11" fill="#374151">long-poll, live volume ticks</text>
+
+  <!-- ═══════════════════════════════════════════════
+       SSE → Browser arrow (curved upward)
+  ═══════════════════════════════════════════════ -->
+  <!-- SSE stream box center-left: x=232, y=372 -->
+  <!-- Browser right edge: x=178, y=245 -->
+  <path d="M232,372 C190,372 160,320 160,290"
+        fill="none" stroke="#7c3aed" stroke-width="1.8"
+        stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="175" y="345" text-anchor="middle" font-size="10" fill="#7c3aed">live volume ticks</text>
+
+  <!-- ═══════════════════════════════════════════════
+       (C) AWS GROUP  [x=555, y=90, w=525, h=520]
+  ═══════════════════════════════════════════════ -->
+  <rect x="555" y="90" width="525" height="520" rx="8"
+        fill="#fff9f0" stroke="#ff9900" stroke-width="2" stroke-dasharray="8,4"/>
+  <text x="817" y="113" text-anchor="middle" font-size="13" font-weight="700" fill="#b45309">
+    AWS · us-east-1 (OIDC federated, no static keys)
+  </text>
+
+  <!-- ── Aurora DSQL box [x=575, y=125, w=230, h=230] ── -->
+  <rect x="575" y="125" width="230" height="230" rx="8"
+        fill="#eff6ff" stroke="#2563eb" stroke-width="2.2"/>
+  <text x="690" y="150" text-anchor="middle" font-size="14" font-weight="700" fill="#1d4ed8">Aurora DSQL</text>
+  <text x="690" y="168" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af">System of Record (ACID)</text>
+
+  <line x1="580" y1="176" x2="800" y2="176" stroke="#bfdbfe" stroke-width="1"/>
+
+  <text x="690" y="194" text-anchor="middle" font-size="11" fill="#1e3a8a">Tables: sales · ledger · outbox</text>
+  <text x="690" y="211" text-anchor="middle" font-size="11" fill="#1e3a8a">Single txn: sale + N ledger rows</text>
+  <text x="690" y="227" text-anchor="middle" font-size="11" fill="#1e3a8a">+ outbox row (atomic commit)</text>
+  <text x="690" y="244" text-anchor="middle" font-size="11" fill="#1e3a8a">deterministic txn_id</text>
+  <text x="690" y="260" text-anchor="middle" font-size="11" fill="#1e3a8a">→ idempotent replay</text>
+
+  <line x1="580" y1="270" x2="800" y2="270" stroke="#bfdbfe" stroke-width="1"/>
+
+  <text x="690" y="286" text-anchor="middle" font-size="11" fill="#1e3a8a">Read: ledger feed / statement</text>
+  <text x="690" y="302" text-anchor="middle" font-size="11" fill="#1e3a8a">(SELECT — direct query)</text>
+  <text x="690" y="320" text-anchor="middle" font-size="11" fill="#1e3a8a">outbox → polled by Drainer</text>
+  <text x="690" y="337" text-anchor="middle" font-size="11" fill="#1e3a8a">every ~1 min</text>
+
+  <!-- ── DynamoDB box [x=820, y=125, w=245, h=340] ── -->
+  <rect x="820" y="125" width="245" height="340" rx="8"
+        fill="#f5f3ff" stroke="#4053d6" stroke-width="2.2"/>
+  <text x="942" y="150" text-anchor="middle" font-size="14" font-weight="700" fill="#3730a3">Amazon DynamoDB</text>
+  <text x="942" y="168" text-anchor="middle" font-size="11" font-weight="600" fill="#3730a3">Network Graph + Read Models</text>
+  <text x="942" y="184" text-anchor="middle" font-size="11" fill="#3730a3">(single table, no Scans)</text>
+
+  <line x1="825" y1="192" x2="1060" y2="192" stroke="#c7d2fe" stroke-width="1"/>
+
+  <text x="942" y="210" text-anchor="middle" font-size="11" fill="#1e1b4b">DIST#/META · VOLUME#</text>
+  <text x="942" y="226" text-anchor="middle" font-size="11" fill="#1e1b4b">HEALTH# rollups</text>
+
+  <line x1="825" y1="236" x2="1060" y2="236" stroke="#c7d2fe" stroke-width="1"/>
+
+  <text x="942" y="254" text-anchor="middle" font-size="11" fill="#1e1b4b">TREE/ (subtree traversal)</text>
+  <text x="942" y="270" text-anchor="middle" font-size="11" fill="#1e1b4b">PARENT# (front-line query)</text>
+
+  <line x1="825" y1="280" x2="1060" y2="280" stroke="#c7d2fe" stroke-width="1"/>
+
+  <text x="942" y="298" text-anchor="middle" font-size="11" fill="#1e1b4b">CONFIG key-value</text>
+  <text x="942" y="314" text-anchor="middle" font-size="11" fill="#1e1b4b">EVENT# (idempotency marker)</text>
+  <text x="942" y="330" text-anchor="middle" font-size="11" fill="#1e1b4b">applied by Drainer via</text>
+  <text x="942" y="346" text-anchor="middle" font-size="11" fill="#1e1b4b">TransactWriteItems</text>
+
+  <line x1="825" y1="356" x2="1060" y2="356" stroke="#c7d2fe" stroke-width="1"/>
+
+  <text x="942" y="374" text-anchor="middle" font-size="11" fill="#1e1b4b">Read: GetItem / Query</text>
+  <text x="942" y="390" text-anchor="middle" font-size="11" fill="#1e1b4b">(network / aggregate reads)</text>
+  <text x="942" y="406" text-anchor="middle" font-size="11" fill="#1e1b4b">no table scans</text>
+  <text x="942" y="422" text-anchor="middle" font-size="11" fill="#1e1b4b">rebuildable from DSQL source</text>
+  <text x="942" y="438" text-anchor="middle" font-size="11" fill="#1e1b4b">of truth</text>
+  <text x="942" y="455" text-anchor="middle" font-size="11" fill="#1e1b4b">at any time</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ARROWS: Route Handlers → Aurora DSQL
+       Label: "1. recordSale: money, atomic"
+  ═══════════════════════════════════════════════ -->
+  <!-- Route Handlers right edge: x=488, y=165  →  Aurora DSQL left edge: x=575, y=200 -->
+  <path d="M488,175 L555,175 L555,218 L575,218"
+        fill="none" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="518" y="168" text-anchor="middle" font-size="10" font-weight="700" fill="#374151">1. recordSale:</text>
+  <text x="518" y="181" text-anchor="middle" font-size="10" fill="#374151">money, atomic</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ARROWS: Route Handlers ↔ DynamoDB (read path, blue)
+  ═══════════════════════════════════════════════ -->
+  <!-- Route Handlers right x=488, y=150 → DynamoDB left x=820, y=260 -->
+  <path d="M488,155 L530,155 L530,100 L942,100 L942,125"
+        fill="none" stroke="#2563eb" stroke-width="1.8"
+        marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue-rev)"/>
+  <text x="700" y="95" text-anchor="middle" font-size="10" fill="#2563eb">network/aggregate reads (GetItem/Query)</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ARROWS: Route Handlers ↔ Aurora DSQL (ledger reads, blue)
+  ═══════════════════════════════════════════════ -->
+  <!-- a downward return read arrow -->
+  <path d="M575,265 L555,265 L555,210 L488,210"
+        fill="none" stroke="#2563eb" stroke-width="1.8"
+        marker-end="url(#arrow-blue)"/>
+  <text x="514" y="258" text-anchor="middle" font-size="10" fill="#2563eb">ledger feed /</text>
+  <text x="514" y="270" text-anchor="middle" font-size="10" fill="#2563eb">statement (SELECT)</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ARROWS: Aurora DSQL outbox → Outbox Drainer
+       Label: "2. listPendingOutbox"  (green)
+  ═══════════════════════════════════════════════ -->
+  <!-- Aurora DSQL bottom: x=690, y=355  →  Outbox Drainer left: x=232, y=273 -->
+  <path d="M690,355 L690,430 L360,430 L360,318"
+        fill="none" stroke="#16a34a" stroke-width="2"
+        stroke-dasharray="6,3" marker-end="url(#arrow-green)"/>
+  <text x="530" y="446" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">2. listPendingOutbox (after each sale + cron backstop)</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ARROWS: Outbox Drainer → DynamoDB
+       Label: "3. TransactWriteItems (EVENT# marker, apply-once)"  (green)
+  ═══════════════════════════════════════════════ -->
+  <!-- Outbox Drainer right: x=488, y=273  →  DynamoDB left: x=820, y=314 -->
+  <path d="M488,273 L645,273 L645,314 L820,314"
+        fill="none" stroke="#16a34a" stroke-width="2"
+        marker-end="url(#arrow-green)"/>
+  <text x="640" y="264" text-anchor="middle" font-size="10" font-weight="700" fill="#16a34a">3. TransactWriteItems</text>
+  <text x="640" y="276" text-anchor="middle" font-size="10" fill="#16a34a">(EVENT# marker, apply-once)</text>
+
+  <!-- ═══════════════════════════════════════════════
+       ARROWS: Outbox Drainer → DynamoDB (recompute HEALTH#)
+  ═══════════════════════════════════════════════ -->
+  <path d="M488,295 L680,295 L680,356 L820,356"
+        fill="none" stroke="#16a34a" stroke-width="1.6"
+        stroke-dasharray="4,3" marker-end="url(#arrow-green)"/>
+  <text x="670" y="346" text-anchor="middle" font-size="10" fill="#16a34a">recompute HEALTH# rollups</text>
+
+  <!-- ═══════════════════════════════════════════════
+       LEGEND / CAPTION  (bottom)
+  ═══════════════════════════════════════════════ -->
+  <rect x="18" y="620" width="1062" height="68" rx="6"
+        fill="#f8fafc" stroke="#d1d5db" stroke-width="1"/>
+  <text x="34" y="640" font-size="11" font-weight="700" fill="#111827">Legend / Notes</text>
+  <text x="34" y="657" font-size="10" fill="#374151">
+    DSQL = source of truth (ACID, immutable ledger); DynamoDB aggregates = rebuildable read model (always reconstructable from DSQL).
+  </text>
+  <text x="34" y="673" font-size="10" fill="#374151">
+    Drainer would be a Lambda on a DynamoDB Streams trigger in an unconstrained AWS account — identical logic, different trigger. Green path = exactly-once outbox flow (1→2→3).
+  </text>
+
+  <!-- ═══════════════════════════════════════════════
+       PATH LEGEND (top-right corner)
+  ═══════════════════════════════════════════════ -->
+  <rect x="565" y="475" width="500" height="80" rx="6"
+        fill="#fafafa" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="580" y="494" font-size="11" font-weight="700" fill="#111827">Arrow key</text>
+  <!-- gray solid -->
+  <line x1="580" y1="508" x2="620" y2="508" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="628" y="512" font-size="10" fill="#374151">sync write / request</text>
+  <!-- blue solid -->
+  <line x1="580" y1="524" x2="620" y2="524" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+  <text x="628" y="528" font-size="10" fill="#2563eb">read path (bidirectional)</text>
+  <!-- green solid -->
+  <line x1="580" y1="540" x2="620" y2="540" stroke="#16a34a" stroke-width="2" marker-end="url(#arrow-green)"/>
+  <text x="628" y="544" font-size="10" fill="#16a34a">exactly-once outbox flow (1→2→3)</text>
+  <!-- purple dashed -->
+  <line x1="770" y1="508" x2="810" y2="508" stroke="#7c3aed" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="818" y="512" font-size="10" fill="#7c3aed">SSE push (live ticks)</text>
+  <!-- green dashed -->
+  <line x1="770" y1="524" x2="810" y2="524" stroke="#16a34a" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrow-green)"/>
+  <text x="818" y="528" font-size="10" fill="#16a34a">async outbox poll / HEALTH rollup</text>
+
+</svg>
