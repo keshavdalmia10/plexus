@@ -7,7 +7,7 @@
 
 ---
 
-![The Plexus dashboard](images/dashboard.png)
+![The Plexus dashboard](https://raw.githubusercontent.com/keshavdalmia10/plexus/main/docs/images/dashboard.png)
 *The live income cockpit. Sales volume, network volume, rank, and earnings update in real time, with a running feed of every downline sale that paid you.*
 
 ## Inspiration
@@ -28,15 +28,17 @@ Plexus is the income cockpit for one individual seller.
 - **Network Health** — scores how much of your network's volume is genuine retail versus sign-up packs, and flags branches where starter kits dominate. This is the "is my network real or is it just recruiting" view.
 - **Freemium** — Free gets the dashboard, the feed, and three levels of network. Pro ($12/mo) unlocks the full network depth and Health analytics. Gating is enforced at the API, not just hidden in the UI.
 
-![Network view, gated on the Free plan](images/network-gated.png)
+![Network view, gated on the Free plan](https://raw.githubusercontent.com/keshavdalmia10/plexus/main/docs/images/network-gated.png)
 *The network tree on Free. You see three levels; the rest sits behind an upgrade prompt. The gate is enforced server-side, not just blurred in the UI.*
 
-| Free | Pro |
-|---|---|
-| ![Network Health paywall](images/health-paywall.png) | ![Network Health unlocked](images/health-unlocked.png) |
-| *Network Health is a Pro feature: the score is teased behind a paywall.* | *After upgrading, the full health score, retail-vs-starter split, and every flagged branch.* |
+![Network Health paywall](https://raw.githubusercontent.com/keshavdalmia10/plexus/main/docs/images/health-paywall.png)
+*Network Health is a Pro feature: the score is teased behind a paywall.*
 
-![Pricing](images/pricing.png)
+![Network Health unlocked](https://raw.githubusercontent.com/keshavdalmia10/plexus/main/docs/images/health-unlocked.png)
+*After upgrading: the full health score, retail-vs-starter split, and every flagged branch.*
+
+
+![Pricing](https://raw.githubusercontent.com/keshavdalmia10/plexus/main/docs/images/pricing.png)
 *Freemium done honestly: $0 Free vs $12/mo Pro, with a demo checkout that collects no payment.*
 
 ## How we built it
@@ -47,7 +49,7 @@ The core decision: **polyglot persistence, one truth.**
 - **Aurora DSQL owns the money.** The sale and all of its commission rows commit in a single ACID transaction. A partial payout is impossible. Deterministic transaction IDs (`hash(saleId + beneficiaryId)`) make the write idempotent, so a retried request can't double-pay.
 - **A transactional outbox bridges them.** The outbox row commits inside the same DSQL transaction as the money. A drainer then applies the derived aggregates to DynamoDB exactly-once, using `TransactWriteItems` with a conditional idempotency marker. DSQL is the source of truth. The DynamoDB aggregates are a rebuildable read model, and we have a `reconcile.ts` script that proves zero drift between them.
 
-![Architecture](images/architecture.png)
+![Architecture](https://raw.githubusercontent.com/keshavdalmia10/plexus/main/docs/images/architecture.png)
 *The full flow: a sale commits money plus an outbox row to Aurora DSQL in one transaction (1), a drainer polls the outbox (2) and applies aggregates to DynamoDB exactly-once via an EVENT# idempotency marker (3). Reads come straight off DynamoDB; live updates stream back over SSE.*
 
 The app is Next.js on Vercel, scaffolded with v0. Auth to AWS is Vercel's OIDC federation, so there are no static AWS keys anywhere in the repo. We shipped it as 18 reviewed tasks behind two acceptance gates: a Phase-B gate (7 checks: atomicity, idempotency, the 5-level cascade, API gating, statement math, reconciliation) and a Phase-C gate (5 checks: outbox atomicity, crash survival, exactly-once apply, health rollups, graceful degradation). 19 unit tests on top.
