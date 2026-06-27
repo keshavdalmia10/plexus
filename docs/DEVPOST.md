@@ -18,6 +18,8 @@ We wanted the opposite of a monthly PDF. Record a sale, watch the earnings move 
 
 The other half of the inspiration was the judging. This hackathon is scored by AWS database architects, and the prompt is "Vercel v0 + AWS databases." That reframed the whole thing for us. The win condition isn't UI breadth, it's the data model. So we asked a sharper question: what *is* a referral commission engine, underneath? And the answer is that it's two different problems wearing one trenchcoat. A network is a graph you query by shape. Money is a ledger you have to get exactly right under concurrency. Those two things want different databases. That tension became the whole project.
 
+The original move here isn't the product category. Side-hustle commission tracking exists. It's the architecture. We treat a referral engine as a *polyglot-persistence* problem: one app that's secretly two database problems, with an exactly-once bridge between them. On a prompt where most entries are a single store behind a v0 UI, the idea is building the *seam* between two AWS databases and proving it holds.
+
 ## What it does
 
 Plexus is the income cockpit for one individual seller.
@@ -54,6 +56,17 @@ The core decision: **polyglot persistence, one truth.**
 
 The app is Next.js on Vercel, scaffolded with v0. Auth to AWS is Vercel's OIDC federation, so there are no static AWS keys anywhere in the repo. We shipped it as 18 reviewed tasks behind two acceptance gates: a Phase-B gate (7 checks: atomicity, idempotency, the 5-level cascade, API gating, statement math, reconciliation) and a Phase-C gate (5 checks: outbox atomicity, crash survival, exactly-once apply, health rollups, graceful degradation). 19 unit tests on top.
 
+## Design
+
+We didn't want a back-end with a UI bolted on top. The front-end is built to surface exactly what the two databases produce, so the layers read as one thing.
+
+- The **commission feed** is the Aurora DSQL ledger, made visible. Every row is a real ledger entry, shown at the level it paid.
+- The **network tree** is the DynamoDB materialized path, rendered. The shape on screen is the shape in the table.
+- The **live earnings tick** is the transactional outbox propagating, in real time. Record a downline sale and you watch the number move and the rank recompute, because that's the read model catching up in front of you.
+- The **paywall is honest.** The locked network levels and the blurred Health score aren't a CSS trick, they're the API refusing to send the data. The teaser is real, which is why the unlock feels real.
+
+Visually it stays quiet on purpose: clean cards, one green accent, generous spacing, no dashboard clutter fighting for attention. The seller sees their money, their network, and their health, and nothing else. That's the full-stack point. The design decisions and the data decisions are the same decisions.
+
 ## Challenges we ran into
 
 This is where the project got interesting, because almost every challenge came from reality pushing back.
@@ -78,6 +91,14 @@ This is where the project got interesting, because almost every challenge came f
 - **Local green is not production green.** Serverless changes the rules for anything that happens after the response. If your design relies on background work, you have to verify it on the real platform, because the local process model will quietly cover for you.
 - **Choose the database per access pattern, not per habit.** A graph queried by shape and a ledger that has to be correct under concurrency are not the same problem. One source of truth (DSQL), one rebuildable read model (DynamoDB), a reliable path between them. That sentence is the whole architecture.
 - **Constraints are content.** The IAM boundary and the DSQL quirks felt like roadblocks in the moment. In the writeup and the demo, they're the most credible parts, because they show we actually ran this against real managed services and dealt with what they hand you.
+
+## Impact and real-world fit
+
+The audience is real and underserved. Millions of people run direct-sales side hustles, and the tooling they get is a statement once a month. Plexus gives that person something they've never really had: their income and their network, live.
+
+What makes it more than a demo is the infrastructure under it. DynamoDB serves an unbounded-depth network with no table scans, so it doesn't buckle when a downline grows into the thousands. Aurora DSQL keeps the money correct under concurrency, which is non-negotiable the second you're touching payouts. Those aren't demo conveniences, they're the choices you'd make to actually ship this to a real seller base. And the freemium model is a working monetization path, not a slide: the individual seller pays for visibility into their own business.
+
+So it's not just functional. It's shaped like something you could put in front of real users on Monday and trust to hold up as the data grows.
 
 ## What's next for Plexus
 
